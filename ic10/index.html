@@ -1,105 +1,165 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Подключение Hack через CDN -->
-  <link href="https://fonts.cdnfonts.com/css/hack" rel="stylesheet">
-  
-  <!-- Подключение других моноширинных шрифтов -->
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=DejaVu+Sans+Mono&display=swap" rel="stylesheet">
-  
-  <title>Сравнение моноширинных шрифтов</title>
-  <style>
-    .example {
-      margin: 20px 0;
-      font-size: 20px;
-    }
-    .hack {
-      font-family: 'Hack', monospace;
-    }
-    .fira {
-      font-family: 'Fira Code', monospace;
-    }
-    .source {
-      font-family: 'Source Code Pro', monospace;
-    }
-    .roboto {
-      font-family: 'Roboto Mono', monospace;
-    }
-    .inconsolata {
-      font-family: 'Inconsolata', monospace;
-    }
-    .jetbrains {
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .dejavu {
-      font-family: 'DejaVu Sans Mono', monospace;
-    }
-  </style>
-  <script>
-    function rTP(num, precision = 15) {
-      return Number(num.toPrecision(precision));
-    }
-    function float64ToBits(num) {
-      let buf = new ArrayBuffer(8); // 64 бита = 8 байт
-      let view = new DataView(buf);
-      view.setFloat64(0, num);  // Записываем число в формате Float64
-      let bits = '';
-      for (let i = 0; i < 8; i++) {
-        let byte = view.getUint8(i).toString(2).padStart(8, '0');  // Получаем каждый байт в бинарном виде
-        bits += byte;
-      }
-      return bits;
-    }
-    function float64ToHex(num) {
-      let bits = float64ToBits(num);
-      let hex = '';
-      for (let i = 0; i < bits.length; i += 4) {
-        hex += parseInt(bits.slice(i, i + 4), 2).toString(16).toUpperCase();  // Преобразуем каждый блок из 4 бит в 1 шестнадцатеричный символ
-      }
-      return hex;
-    }
-    let num = -2.123456789012345e-208;
-    console.log("Bits:", float64ToBits(num));
-    console.log("Hexadecimal:", float64ToHex(num));
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link href="https://fonts.cdnfonts.com/css/hack" rel="stylesheet">
+    <title>IC10 Emulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Hack', monospace;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            border-top: 1px solid black;
+            border-left: 1px solid black;
+            flex-direction: column;
+        }
+        .code-box, .status-box {
+            border-right: 1px solid black;
+            border-bottom: 1px solid black;
+            display: flex;
+            /*align-items: center;*/
+            /*justify-content: center;*/
+            color: white;
+            overflow: auto;
+        }
+        .code-box { background-color: red; }
+        .status-box { background-color: green; }
+        
+        @media (min-aspect-ratio: 1/1) {
+            .container {
+                flex-direction: row;
+            }
+            .code-box {
+                width: 75%;
+                height: 100%;
+            }
+            .status-box {
+                width: 25%;
+                height: 100%;
+            }
+        }
+        
+        @media (max-aspect-ratio: 1/1) {
+            .container {
+                flex-direction: column-reverse;
+            }
+            .status-box {
+                width: 100%;
+                height: 25%;
+            }
+            .code-box {
+                width: 100%;
+                height: 75%;
+            }
+        }
+        .fullscreen-icon {
+            position: fixed;
+            bottom: 0%;
+            cursor: pointer;
+            z-index: 1000;  
+            width: 54px;
+            height: 54px;
+            font-size: 25px;
+            transition: opacity 0.3s;
+            opacity: 0.5;
+        }
+        .fullscreen-icon:hover {
+            opacity: 1;
+        }
+        .arrow {
+            position: absolute;
+            display: block;
+        }
+        .fullscreen-icon.normal .arrow-tl { top: 0; left: 0; }
+        .fullscreen-icon.normal .arrow-tr { top: 0; right: 0; }
+        .fullscreen-icon.normal .arrow-bl { bottom: 0; left: 0; }
+        .fullscreen-icon.normal .arrow-br { bottom: 0; right: 0; }
+        .fullscreen-icon.fullscreen .arrow-tl { bottom: 0; right: 0; }
+        .fullscreen-icon.fullscreen .arrow-tr { bottom: 0; left: 0; }
+        .fullscreen-icon.fullscreen .arrow-bl { top: 0; right: 0; }
+        .fullscreen-icon.fullscreen .arrow-br { top: 0; left: 0; }
+    </style>
 </head>
 <body>
-  <h1>Сравнение моноширинных шрифтов</h1>
-  
-  <div class="example hack">
-    <strong>Hack:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example fira">
-    <strong>Fira Code:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example source">
-    <strong>Source Code Pro:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example roboto">
-    <strong>Roboto Mono:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example inconsolata">
-    <strong>Inconsolata:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example jetbrains">
-    <strong>JetBrains Mono:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
-  
-  <div class="example dejavu">
-    <strong>DejaVu Sans Mono:</strong> 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  </div>
+    <div class="container">
+        <div class="code-box">Code</div>
+        <div class="status-box">
+            r0&nbsp; -212345678901235000000<br/>
+            r1&nbsp; -2.12345678901235e-208<br/>
+            r2&nbsp; 0<br/>
+            r3&nbsp; 0<br/>
+            r4&nbsp; -212345678901235000000<br/>
+            r5&nbsp; -2.12345678901235e-208<br/>
+            r6&nbsp; 0<br/>
+            r7&nbsp; 0<br/>
+            r8&nbsp; -212345678901235000000<br/>
+            r9&nbsp; -2.12345678901235e-208<br/>
+            r10 0<br/>
+            r11 0<br/>
+            r12 -212345678901235000000<br/>
+            r13 -2.12345678901235e-208<br/>
+            r14 0<br/>
+            r15 0<br/>
+            sp&nbsp; 0<br/>
+            ra&nbsp; 12
+        </div>
+    </div>
+    <div id="fullscreen-toggle" class="fullscreen-icon normal">
+        <span class="arrow arrow-tl">↖️</span>
+        <span class="arrow arrow-tr">↗️</span>
+        <span class="arrow arrow-bl">↙️</span>
+        <span class="arrow arrow-br">↘️</span>
+    </div>
 </body>
 </html>
+<script>
+    const fullscreenButton = document.getElementById('fullscreen-toggle');
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() :
+                document.documentElement.webkitRequestFullscreen ? document.documentElement.webkitRequestFullscreen() :
+                document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() :
+                document.documentElement.msRequestFullscreen && document.documentElement.msRequestFullscreen();
+            fullscreenButton.classList.add('fullscreen');
+            fullscreenButton.classList.remove('normal');
+        } else {
+            document.exitFullscreen ? document.exitFullscreen() :
+                document.webkitExitFullscreen ? document.webkitExitFullscreen() :
+                document.mozCancelFullScreen ? document.mozCancelFullScreen() :
+                document.msExitFullscreen && document.msExitFullscreen();
+            fullscreenButton.classList.remove('fullscreen');
+            fullscreenButton.classList.add('normal');
+        }
+    };
+
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('fullscreenchange', updateButtonState);
+    document.addEventListener('webkitfullscreenchange', updateButtonState);
+    document.addEventListener('mozfullscreenchange', updateButtonState);
+    document.addEventListener('msfullscreenchange', updateButtonState);
+
+    function updateButtonState() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            fullscreenButton.classList.remove('fullscreen');
+            fullscreenButton.classList.add('normal');
+        }
+    }
+    const statusBox = document.querySelector(".status-box");
+    const updateFontSize = () => {
+        document.documentElement.style.fontSize = statusBox.clientWidth / 
+        (window.matchMedia("(min-aspect-ratio: 1/1)").matches ? 17 : 37) + "px";
+    };
+    new ResizeObserver(updateFontSize).observe(statusBox);
+    updateFontSize();
+</script>
