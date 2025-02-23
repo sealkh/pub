@@ -114,15 +114,38 @@
 </html>
 <script>
     const fullscreenButton = document.getElementById('fullscreen-toggle');
-    fullscreenButton.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            // Просим браузер войти в полноэкранный режим
+            document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() :
+                document.documentElement.webkitRequestFullscreen ? document.documentElement.webkitRequestFullscreen() :
+                document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() :
+                document.documentElement.msRequestFullscreen && document.documentElement.msRequestFullscreen();
             fullscreenButton.classList.add('fullscreen');
             fullscreenButton.classList.remove('normal');
         } else {
-            document.exitFullscreen();
+            // Выход из полноэкранного режима
+            document.exitFullscreen ? document.exitFullscreen() :
+                document.webkitExitFullscreen ? document.webkitExitFullscreen() :
+                document.mozCancelFullScreen ? document.mozCancelFullScreen() :
+                document.msExitFullscreen && document.msExitFullscreen();
             fullscreenButton.classList.remove('fullscreen');
             fullscreenButton.classList.add('normal');
         }
-    });
+    };
+
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+
+    // Для мобильных браузеров добавляем прослушивание событий, чтобы учитывать выход из полноэкранного режима
+    document.addEventListener('fullscreenchange', updateButtonState);
+    document.addEventListener('webkitfullscreenchange', updateButtonState);
+    document.addEventListener('mozfullscreenchange', updateButtonState);
+    document.addEventListener('msfullscreenchange', updateButtonState);
+
+    function updateButtonState() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            fullscreenButton.classList.remove('fullscreen');
+            fullscreenButton.classList.add('normal');
+        }
+    }
 </script>
