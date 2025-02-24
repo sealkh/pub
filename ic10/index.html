@@ -7,7 +7,6 @@
     <title>IC10 Emulator</title>
     <style>
         :root {
-          --global-font-size: 16px;
           --global-px-size: 1;
         }
         html {
@@ -17,7 +16,7 @@
             margin: 0;
             overflow: hidden;
             font-family: 'Hack', monospace;
-            font-size: var(--global-font-size);
+            font-size: calc(var(--global-px-size) * 16px);
             display: flex;
             height: 100vh;
             width: 100vw;
@@ -101,8 +100,9 @@
             border: calc(var(--global-px-size) * 2px) solid #000915;
             border-radius: 1vw;
             padding: calc(var(--global-px-size) * 4px);
-            overflow: hidden;
             position: relative;
+            overflow-x: hidden;
+            overflow-y: scroll;
         }
         .editor-body-container { 
             display: flex; 
@@ -112,6 +112,7 @@
         }
         .line-break-points {
             color: transparent;
+            user-select: none;
             cursor: pointer;
         }
         .line-numbers {
@@ -142,7 +143,8 @@
             box-sizing: border-box;
             width: 100%;
             height: 100%;
-            overflow: auto;
+            overflow-y: hidden;
+            overflow-x: auto;
         }
         .line-break-points div {
             padding: 0px calc(var(--global-px-size) * 2px);
@@ -152,12 +154,13 @@
         }
         .editor-lines div {
             padding: 0px;
+            width: 100%;
             white-space: pre;
         }
         .editor-lines div:nth-child(odd),
         .line-numbers div:nth-child(odd),
         .line-break-points div:nth-child(odd) {
-            background: #152637;
+            background: #051627;
         }
         .editor-lines div:nth-child(even),
         .line-numbers div:nth-child(even),
@@ -174,23 +177,20 @@
             background: #152637;
         }
 
-        textarea::-webkit-scrollbar {
-          width: calc(var(--global-px-size) * 6px);
-          height: calc(var(--global-px-size) * 6px);
+        ::-webkit-scrollbar {
+          width: calc(var(--global-px-size) * 12px);
+          height: calc(var(--global-px-size) * 12px);
         }
-
-        textarea::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
           background-color: #000;
-          border-radius: calc(var(--global-px-size) * 6px);
+          border-radius: calc(var(--global-px-size) * 12px);
         }
-
-        textarea::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
           background-color: #001122;
-          border-radius: calc(var(--global-px-size) * 6px);
-          border: calc(var(--global-px-size) * 1.3px) solid #355677;
+          border-radius: calc(var(--global-px-size) * 12px);
+          border: calc(var(--global-px-size) * 2.5px) solid #355677;
         }
-
-        textarea::-webkit-scrollbar-thumb:hover {
+        ::-webkit-scrollbar-thumb:hover {
           background-color: #253647;
           cursor: pointer;
         }
@@ -262,7 +262,10 @@
   const editorLines = document.getElementById("editorLines");
   const editorBody = document.getElementById("editorBody");
   const editorContainer = document.getElementById("editorContainer");
-  
+  const statusBox = document.querySelector(".status-box");
+  let editorScrollWidth = editor.scrollWidth;
+  let editorScrollHeight = editor.scrollHeight;
+  let globalPxSize = 1;
   const breakpoints = new Set();
 
   fullscreenButton.addEventListener('click', toggleFullscreen);
@@ -278,22 +281,18 @@
           fullscreenButton.classList.add('normal');
       }
   }
-  const statusBox = document.querySelector(".status-box");
-  const updateFontSize = () => {
-    const size = statusBox.clientWidth / (window.matchMedia("(min-aspect-ratio: 1/1)").matches ? 17 : 34);
-    document.documentElement.style.setProperty("--global-font-size", size + "px");
-    document.documentElement.style.setProperty("--global-px-size", 1/16*size);
-  };
-  new ResizeObserver(updateFontSize).observe(statusBox);
-  updateFontSize();
 
   function updateLineNumbers() {
       //const lines = Math.max(editor.value.split("\n"),127);
       const lines = editor.value.split("\n");
+      if (lines.length < 128) {
+        while (lines.length < 128) lines.push("");
+        editor.value = lines.join("\n");
+      }
       //const max = 
       lineBreakPoints.innerHTML = lines.map((_, i) => `<div onclick="toggleBreakpoint(this, ${i})" class='${breakpoints.has(i)?"breakpoint-active":"breakpoint-off"}'>⊚</div>`).join("");
       lineNumbers.innerHTML = lines.map((_, i) => `<div onclick="toggleBreakpoint(this, ${i})" class="line-numbers-row">${i}</div>`).join("");
-      editorLines.innerHTML = lines.map(line => `<div class="editor-lines-row">${line || "&nbsp;"}</div>`).join("");
+      editorLines.innerHTML = lines.map(line => `<div class="editor-lines-row" style="width:${editorScrollWidth}px">${line || "&nbsp;"}</div>`).join("");
   }
   function toggleBreakpoint(element, lineNumber) {
       if (breakpoints.has(lineNumber)) {
@@ -303,27 +302,54 @@
       }
       updateLineNumbers();
   }
-  editor.addEventListener("input", updateLineNumbers);
+  function updateSizes(e){
+    if (e) {
+      globalPxSize = statusBox.clientWidth /
+        (window.matchMedia("(min-aspect-ratio: 1/1)").matches ? 17 : 34)/16;
+      document.documentElement.style.setProperty("--global-px-size", globalPxSize);
+    }
+    if (editorScrollWidth !== editor.scrollWidth) {
+      editorScrollWidth = editor.scrollWidth;
+      editorLines.style.width = editorScrollWidth + "px";
+      //editorBody.style.width = editorScrollWidth + "px";
+      const children = editorLines.children;
+
+      for (let i = 0; i < children.length; i++) {
+        children[i].style.width = editorScrollWidth + 'px';
+      }
+    }
+    if (editorScrollHeight !== editor.scrollHeight) {
+      editorScrollHeight = editor.scrollHeight;
+      editorLines.style.height = editorScrollHeight + "px";
+      //editorBody.style.height = editorScrollHeight + "px";
+    }
+  }
+  editor.addEventListener("input", (inputEvent) => {
+    console.log(editor.selectionStart, editor.clientHeight, editor.scrollHeight, editorContainer.clientHeight,
+    editorContainer.scrollHeight, editor.clientHeight + 2 * Math.floor(4*globalPxSize));
+    const newEditorHeight = editorContainer.clientHeight + 2 * Math.floor(4*globalPxSize);
+    //editorContainer.style.height = editorContainer.scrollHeight + "px";
+    editorBody.style.height = editor.scrollHeight + "px";
+    editor.style.height = (editorContainer.clientHeight - 2 * Math.floor(4*globalPxSize)) + "px";
+    updateLineNumbers();
+    updateSizes();
+  });
   editor.addEventListener("scroll", () => {
       editorLines.scrollLeft = editor.scrollLeft;
       editorContainer.scrollTop = editor.scrollTop;
-      console.log(editor.scrollTop, editor.scrollLeft);
       editor.style.top = editor.scrollTop + "px";
   });
-  editor.addEventListener('resize', function() {
-    editorLines.style.width = editor.offsetWidth;
-    const parentWidth = editorLines.offsetWidth;
-    const children = editorLines.children;
-
-    for (let i = 0; i < children.length; i++) {
-      children[i].style.width = parentWidth + 'px';
-    }
+  editorContainer.addEventListener("scroll", () => {
+      editor.scrollTop = editorContainer.scrollTop;
+      editor.style.top = editor.scrollTop + "px";
   });
+  window.addEventListener('resize', updateSizes);
 
   updateLineNumbers();
-  window.addEventListener('load', function() {
-    editor.focus();
-  });
+  editor.selectionStart = editor.selectionEnd = 0;
+  window.addEventListener('load', () => { editor.focus(); });
+  updateSizes(1);
+  setTimeout(updateSizes);
 
   /*function getIndex(el) { return Array.from(el.parentNode.children).indexOf(el); }
   function handleHover(event) {
