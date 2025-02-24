@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Character Viewer</title>
+    <link href="https://fonts.cdnfonts.com/css/hack" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Hack', monospace;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0px;
+            padding: 0px;
+            background: #111;
+            color: #ddd;
+        }
+        .char {
+            font-size: 64px;
+            padding: 0px;
+            border: 1px solid #555;
+            text-align: center;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        const container = document.body;
+        for (let i = 0; i <= 0xFFFF; i++) { // UTF-8 full range
+            let char = String.fromCharCode(i);
+            if (/\p{L}|\p{N}|\p{P}|\p{S}/u.test(char)) { // Filter printable characters
+                let div = document.createElement('div');
+                div.className = 'char';
+                div.textContent = char;
+                container.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>
