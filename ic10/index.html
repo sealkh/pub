@@ -6,14 +6,20 @@
     <link href="https://fonts.cdnfonts.com/css/hack" rel="stylesheet">
     <title>IC10 Emulator</title>
     <style>
+        :root {
+          --global-font-size: 16px;
+          --break-point-font-size: 9px;
+        }
         body {
             margin: 0;
             overflow: hidden;
             font-family: 'Hack', monospace;
+            font-size: var(--global-font-size);
             display: flex;
             height: 100vh;
             width: 100vw;
             box-sizing: border-box;
+            background: #001122;
         }
         .container {
             display: flex;
@@ -30,9 +36,9 @@
             /*align-items: center;*/
             /*justify-content: center;*/
             color: white;
-            overflow: auto;
+            overflow: hidden;
         }
-        .code-box { background-color: red; }
+/*        .code-box { background-color: red; }*/
         .status-box { background-color: green; }
         
         @media (min-aspect-ratio: 1/1) {
@@ -88,11 +94,92 @@
         .fullscreen-icon.fullscreen .arrow-tr { bottom: 0; left: 0; }
         .fullscreen-icon.fullscreen .arrow-bl { top: 0; right: 0; }
         .fullscreen-icon.fullscreen .arrow-br { top: 0; left: 0; }
+
+        .editor-container { 
+            display: flex; 
+            width: 100%; 
+            /*height: 100vh;*/
+            /*background: #001122;*/
+            border: 2px solid #000915;
+            border-radius: 1vw;
+            padding: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .editor-body-container { 
+            display: flex; 
+            width: 100%; 
+            position: relative;
+            overflow: hidden;
+        }
+        .line-numbers {
+            padding: 0px; 
+            text-align: right;
+            user-select: none;
+            white-space: nowrap;
+            color: #6a6a6a;
+        }
+        .editor-lines {
+            color: #6a6a6a;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        .editor {
+            padding: 0px 4px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Hack', monospace;
+            font-size: var(--global-font-size);
+            white-space: pre;
+            color: transparent /*#fff*/;
+            caret-color: #f67b04;
+            background: transparent;
+            position: absolute;
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        .line-numbers div {
+            padding: 0px 4px 0px 13px;
+        }
+        .editor-lines div {
+            padding: 0px 4px;
+            white-space: pre;
+            /*width: 100%;*/
+        }
+        .editor-lines div:nth-child(odd), .line-numbers div:nth-child(odd) {
+            background: #152637;
+        }
+        .editor-lines div:nth-child(even), .line-numbers div:nth-child(even) {
+            background: #001122;
+        }
+        .highlight span {
+            color: blue;
+        }
+        .breakpoint {
+            position: absolute;
+            left: 3px;
+            padding: 2px;
+            color: red;
+            cursor: pointer;
+            font-size: var(--break-point-font-size);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="code-box">Code</div>
+        <div class="code-box">
+          <div class="editor-container" id="editorContainer">
+            <div class="line-numbers" id="lineNumbers"></div>
+            <div class="editor-body-container" id="editorBody">
+                <div class="editor-lines" id="editorLines"></div>
+                <textarea id="editor" class="editor" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </div>
         <div class="status-box">
             r0&nbsp; -212345678901235000000<br/>
             r1&nbsp; -2.12345678901235e-208<br/>
@@ -123,43 +210,99 @@
 </body>
 </html>
 <script>
-    const fullscreenButton = document.getElementById('fullscreen-toggle');
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-            document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() :
-                document.documentElement.webkitRequestFullscreen ? document.documentElement.webkitRequestFullscreen() :
-                document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() :
-                document.documentElement.msRequestFullscreen && document.documentElement.msRequestFullscreen();
-            fullscreenButton.classList.add('fullscreen');
-            fullscreenButton.classList.remove('normal');
-        } else {
-            document.exitFullscreen ? document.exitFullscreen() :
-                document.webkitExitFullscreen ? document.webkitExitFullscreen() :
-                document.mozCancelFullScreen ? document.mozCancelFullScreen() :
-                document.msExitFullscreen && document.msExitFullscreen();
-            fullscreenButton.classList.remove('fullscreen');
-            fullscreenButton.classList.add('normal');
-        }
-    };
+  const fullscreenButton = document.getElementById('fullscreen-toggle');
+  const toggleFullscreen = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+          document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() :
+              document.documentElement.webkitRequestFullscreen ? document.documentElement.webkitRequestFullscreen() :
+              document.documentElement.mozRequestFullScreen ? document.documentElement.mozRequestFullScreen() :
+              document.documentElement.msRequestFullscreen && document.documentElement.msRequestFullscreen();
+          fullscreenButton.classList.add('fullscreen');
+          fullscreenButton.classList.remove('normal');
+      } else {
+          document.exitFullscreen ? document.exitFullscreen() :
+              document.webkitExitFullscreen ? document.webkitExitFullscreen() :
+              document.mozCancelFullScreen ? document.mozCancelFullScreen() :
+              document.msExitFullscreen && document.msExitFullscreen();
+          fullscreenButton.classList.remove('fullscreen');
+          fullscreenButton.classList.add('normal');
+      }
+  };
+  const editor = document.getElementById("editor");
+  const lineNumbers = document.getElementById("lineNumbers");
+  const editorLines = document.getElementById("editorLines");
+  const editorBody = document.getElementById("editorBody");
+  const editorContainer = document.getElementById("editorContainer");
+  
+  const breakpoints = new Set();
 
-    fullscreenButton.addEventListener('click', toggleFullscreen);
+  fullscreenButton.addEventListener('click', toggleFullscreen);
 
-    document.addEventListener('fullscreenchange', updateButtonState);
-    document.addEventListener('webkitfullscreenchange', updateButtonState);
-    document.addEventListener('mozfullscreenchange', updateButtonState);
-    document.addEventListener('msfullscreenchange', updateButtonState);
+  document.addEventListener('fullscreenchange', updateButtonState);
+  document.addEventListener('webkitfullscreenchange', updateButtonState);
+  document.addEventListener('mozfullscreenchange', updateButtonState);
+  document.addEventListener('msfullscreenchange', updateButtonState);
 
-    function updateButtonState() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-            fullscreenButton.classList.remove('fullscreen');
-            fullscreenButton.classList.add('normal');
-        }
+  function updateButtonState() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+          fullscreenButton.classList.remove('fullscreen');
+          fullscreenButton.classList.add('normal');
+      }
+  }
+  const statusBox = document.querySelector(".status-box");
+  const updateFontSize = () => {
+    const size = statusBox.clientWidth / (window.matchMedia("(min-aspect-ratio: 1/1)").matches ? 17 : 34);
+    //editor.style.fontSize = document.documentElement.style.fontSize = size + "px";
+    document.documentElement.style.setProperty("--global-font-size", size + "px");
+    document.documentElement.style.setProperty("--break-point-font-size", (9/16*size)+"px");
+  };
+  new ResizeObserver(updateFontSize).observe(statusBox);
+  updateFontSize();
+
+  function updateLineNumbers() {
+      //const lines = Math.max(editor.value.split("\n"),127);
+      const lines = editor.value.split("\n");
+      const max = 
+      lineNumbers.innerHTML = lines.map((_, i) => `
+          <div onclick="toggleBreakpoint(this, ${i})">
+              <span class='breakpoint'>${breakpoints.has(i) ? "🔴" : ""}</span>${i}
+          </div>
+      `).join("");
+      editorLines.innerHTML = lines.map(line => `<div>${line || "&nbsp;"}</div>`).join("");
+  }
+  function toggleBreakpoint(element, lineNumber) {
+      if (breakpoints.has(lineNumber)) {
+          breakpoints.delete(lineNumber);
+      } else {
+          breakpoints.add(lineNumber);
+      }
+      updateLineNumbers();
+  }
+  editor.addEventListener("input", updateLineNumbers);
+  editor.addEventListener("scroll", () => {
+      //lineNumbers.scrollTop = editor.scrollTop;
+      //editorLines.scrollTop = editor.scrollTop;
+      //editorLines.scrollLeft = editor.scrollLeft;
+      //document.body.scrollTop = editor.scrollTop;
+      //document.body.scrollTo({top: editor.scrollTop});
+      //console.log(document.body.scrollTop, editor.scrollTop);
+      editorLines.scrollLeft = editor.scrollLeft;
+      editorContainer.scrollTop = editor.scrollTop;
+      console.log(editor.scrollTop);
+      editor.style.top = editor.scrollTop + "px";
+  });
+  editor.addEventListener('resize', function() {
+    editorLines.style.width = editor.offsetWidth;
+    const parentWidth = editorLines.offsetWidth;
+    const children = editorLines.children;
+
+    for (let i = 0; i < children.length; i++) {
+      children[i].style.width = parentWidth + 'px';
     }
-    const statusBox = document.querySelector(".status-box");
-    const updateFontSize = () => {
-        document.documentElement.style.fontSize = statusBox.clientWidth / 
-        (window.matchMedia("(min-aspect-ratio: 1/1)").matches ? 17 : 37) + "px";
-    };
-    new ResizeObserver(updateFontSize).observe(statusBox);
-    updateFontSize();
+  });
+
+  updateLineNumbers();
+  window.addEventListener('load', function() {
+    editor.focus();
+  });
 </script>
